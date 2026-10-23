@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Snake</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      touch-action: manipulation;
+    }
+    h1 { font-size: 1.25rem; margin-bottom: 0.5rem; font-weight: 600; }
+    #score { margin-bottom: 0.75rem; color: #8b949e; }
+    canvas {
+      background: #161b22;
+      border: 2px solid #30363d;
+      border-radius: 8px;
+      max-width: 100vw;
+    }
+    #pad {
+      margin-top: 1rem;
+      display: grid;
+      grid-template-columns: repeat(3, 3.5rem);
+      grid-template-rows: repeat(3, 3.5rem);
+      gap: 0.35rem;
+    }
+    #pad button {
+      border: none;
+      border-radius: 8px;
+      background: #21262d;
+      color: #e6edf3;
+      font-size: 1.25rem;
+    }
+    #pad button:active { background: #388bfd; }
+    .empty { visibility: hidden; }
+  </style>
+</head>
+<body>
+  <h1>Snake</h1>
+  <p id="score">Puntos: 0</p>
+  <canvas id="c" width="300" height="300" aria-label="Snake"></canvas>
+  <div id="pad">
+    <span class="empty"></span>
+    <button type="button" data-d="up">▲</button>
+    <span class="empty"></span>
+    <button type="button" data-d="left">◀</button>
+    <button type="button" data-d="down">▼</button>
+    <button type="button" data-d="right">▶</button>
+  </div>
+  <script>
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+    const scoreEl = document.getElementById('score');
+    const size = 15;
+    const cells = canvas.width / size;
+    let snake, dir, food, score, timer, alive;
+
+    function reset() {
+      snake = [{ x: 7, y: 7 }, { x: 6, y: 7 }, { x: 5, y: 7 }];
+      dir = { x: 1, y: 0 };
+      food = spawnFood();
+      score = 0;
+      alive = true;
+      scoreEl.textContent = 'Puntos: ' + score;
+      clearInterval(timer);
+      timer = setInterval(tick, 110);
+    }
+
+    function spawnFood() {
+      let p;
+      do {
+        p = { x: Math.floor(Math.random() * cells), y: Math.floor(Math.random() * cells) };
+      } while (snake.some(s => s.x === p.x && s.y === p.y));
+      return p;
+    }
+
+    function tick() {
+      if (!alive) return;
+      const head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
+      if (head.x < 0 || head.y < 0 || head.x >= cells || head.y >= cells) return gameOver();
+      if (snake.some(s => s.x === head.x && s.y === head.y)) return gameOver();
+      snake.unshift(head);
+      if (head.x === food.x && head.y === food.y) {
+        score++;
+        scoreEl.textContent = 'Puntos: ' + score;
+        food = spawnFood();
+      } else {
+        snake.pop();
+      }
+      draw();
+    }
+
+    function gameOver() {
+      alive = false;
+      scoreEl.textContent = 'Fin — ' + score + ' pts. Toca ▲ para reiniciar';
+    }
+
+    function draw() {
+      ctx.fillStyle = '#161b22';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#f85149';
+      ctx.fillRect(food.x * size, food.y * size, size - 1, size - 1);
+      snake.forEach((s, i) => {
+        ctx.fillStyle = i === 0 ? '#3fb950' : '#238636';
+        ctx.fillRect(s.x * size, s.y * size, size - 1, size - 1);
+      });
+    }
+
+    function setDir(x, y) {
+      if (!alive && x === 0 && y === -1) { reset(); return; }
+      if (!alive) return;
+      if (x === -dir.x && y === -dir.y) return;
+      dir = { x, y };
+    }
+
+    document.getElementById('pad').addEventListener('click', (e) => {
+      const d = e.target.dataset.d;
+      if (d === 'up') setDir(0, -1);
+      if (d === 'down') setDir(0, 1);
+      if (d === 'left') setDir(-1, 0);
+      if (d === 'right') setDir(1, 0);
+    });
+
+    window.addEventListener('keydown', (e) => {
+      const map = { ArrowUp: [0,-1], ArrowDown: [0,1], ArrowLeft: [-1,0], ArrowRight: [1,0] };
+      const m = map[e.key];
+      if (m) { e.preventDefault(); setDir(m[0], m[1]); }
+    });
+
+    reset();
+  </script>
+</body>
+</html>
